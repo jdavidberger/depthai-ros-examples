@@ -108,8 +108,7 @@ if ( ament_cmake_FOUND )
 
   install(DIRECTORY params DESTINATION share/${PROJECT_NAME})
   install(DIRECTORY rviz DESTINATION share/${PROJECT_NAME})
-  install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch
-  FILES_MATCHING PATTERN "*.py")
+  install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch FILES_MATCHING PATTERN "*.py")
 
   install(TARGETS
           crop_control_service
@@ -163,7 +162,8 @@ elseif( CATKIN_DEVEL_PREFIX OR CATKIN_BUILD_BINARY_PACKAGE )
         opencv_imgproc
         opencv_highgui
       )
-      
+
+      install(TARGETS ${node_name} DESTINATION lib/${PROJECT_NAME})
   endmacro() 
 
   ## Specify additional locations of header files
@@ -199,6 +199,9 @@ elseif( CATKIN_DEVEL_PREFIX OR CATKIN_BUILD_BINARY_PACKAGE )
   dai_add_node(stereo_node ros1_src/stereo_publisher.cpp)
   dai_add_node(yolov4_spatial_node ros1_src/yolov4_spatial_publisher.cpp)
 
+  install(DIRECTORY params DESTINATION share/${PROJECT_NAME})
+  install(DIRECTORY rviz DESTINATION share/${PROJECT_NAME})
+  install(DIRECTORY launch/ DESTINATION share/${PROJECT_NAME}/launch FILES_MATCHING PATTERN "*.launch")
 
   target_compile_definitions(mobilenet_node PRIVATE BLOB_PATH="${mobilenet_blob}")
   target_compile_definitions(yolov4_spatial_node PRIVATE BLOB_PATH="${tiny_yolo_v4_blob}")
