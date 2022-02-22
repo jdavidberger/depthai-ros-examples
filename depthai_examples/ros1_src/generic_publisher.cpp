@@ -145,20 +145,25 @@ static inline void getParamWithWarning(ros::NodeHandle& pnh, const char* key, T 
 }
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "rgb_stereo_node");
+    ros::init(argc, argv, "dai_generic_publisher");
+
+    dai::Device device;
     ros::NodeHandle pnh("~");
 
-    std::string tfPrefix = "dai";
+    std::string tfPrefix = "dai_" + device.getMxId();
     std::string camera_param_uri;
     std::string monoResolution = "720p";
-    std::string mode = "mono";
+    std::string mode = "depth";
+    std::string topicPrefix = tfPrefix;
 
-    bool lrcheck = true, extended = false, subpixel = false, rectify = false, depth_aligned = true;
+    bool lrcheck = true, extended = false,
+            subpixel = true, rectify = true, depth_aligned = true;
     int stereo_fps = 30;
     int confidence = 200;
     int LRchecktresh = 5;
 
     getParamWithWarning(pnh, "tf_prefix", tfPrefix);
+    getParamWithWarning(pnh, "topic_prefix", topicPrefix);
     getParamWithWarning(pnh, "camera_param_uri", camera_param_uri);
     getParamWithWarning(pnh, "lrcheck", lrcheck);
     getParamWithWarning(pnh, "extended", extended);
@@ -166,6 +171,10 @@ int main(int argc, char** argv) {
     getParamWithWarning(pnh, "confidence", confidence);
     getParamWithWarning(pnh, "LRchecktresh", LRchecktresh);
     getParamWithWarning(pnh, "mode", mode);
+    getParamWithWarning(pnh, "rectify",  rectify);
+    getParamWithWarning(pnh, "depth_aligned",  depth_aligned);
+    getParamWithWarning(pnh, "stereo_fps",  stereo_fps);
+    getParamWithWarning(pnh, "monoResolution",   monoResolution);
 
     bool enableDepth = mode == "depth";
     dai::Pipeline pipeline;
@@ -173,8 +182,8 @@ int main(int argc, char** argv) {
     std::tie(pipeline, monoWidth, monoHeight) =
         createPipeline(enableDepth, lrcheck, extended, subpixel, rectify, depth_aligned, stereo_fps, confidence, LRchecktresh, monoResolution);
 
-    dai::Device device;
-    auto publisher = dai::ros::GenericPipelinePublisher(pnh, device, pipeline);
+    ros::NodeHandle n(topicPrefix);
+    auto publisher = dai::ros::GenericPipelinePublisher(n, device, pipeline);
 
     ros::spin();
 
