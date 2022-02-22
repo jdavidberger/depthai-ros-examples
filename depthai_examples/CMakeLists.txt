@@ -187,6 +187,7 @@ elseif( CATKIN_DEVEL_PREFIX OR CATKIN_BUILD_BINARY_PACKAGE )
     opencv_highgui
   )
 
+  dai_add_node(generic_publisher ros1_src/generic_publisher.cpp)
   dai_add_node(crop_control_service ros1_src/crop_control_service.cpp)
   dai_add_node(mobilenet_node ros1_src/mobilenet_publisher.cpp)
   dai_add_node(rgb_node ros1_src/rgb_publisher.cpp)
