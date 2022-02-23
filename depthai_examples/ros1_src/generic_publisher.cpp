@@ -145,7 +145,7 @@ static inline void getParamWithWarning(ros::NodeHandle& pnh, const char* key, T 
 }
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "dai_generic_publisher");
+    ros::init(argc, argv, "dai_generic_publisher", ros::InitOption::AnonymousName);
 
     dai::Device device;
     ros::NodeHandle pnh("~");
