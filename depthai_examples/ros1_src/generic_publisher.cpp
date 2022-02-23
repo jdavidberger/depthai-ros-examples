@@ -26,6 +26,7 @@ std::tuple<dai::Pipeline, int, int> createPipeline(bool enableDepth,
                                                    int stereo_fps,
                                                    int confidence,
                                                    int LRchecktresh,
+                                                   int bilateralSigma,
                                                    std::string resolution) {
     dai::Pipeline pipeline;
 
@@ -79,6 +80,7 @@ std::tuple<dai::Pipeline, int, int> createPipeline(bool enableDepth,
     stereo->initialConfig.setConfidenceThreshold(confidence);        // Known to be best
     stereo->setRectifyEdgeFillColor(0);                              // black, to better see the cutout
     stereo->initialConfig.setLeftRightCheckThreshold(LRchecktresh);  // Known to be best
+    stereo->initialConfig.setBilateralFilterSigma(bilateralSigma);
     stereo->setLeftRightCheck(lrcheck);
     stereo->setExtendedDisparity(extended);
     stereo->setSubpixel(subpixel);
@@ -161,6 +163,7 @@ int main(int argc, char** argv) {
     int stereo_fps = 30;
     int confidence = 200;
     int LRchecktresh = 5;
+    int bilateralSigma = 5;
 
     getParamWithWarning(pnh, "tf_prefix", tfPrefix);
     getParamWithWarning(pnh, "topic_prefix", topicPrefix);
@@ -174,13 +177,14 @@ int main(int argc, char** argv) {
     getParamWithWarning(pnh, "rectify",  rectify);
     getParamWithWarning(pnh, "depth_aligned",  depth_aligned);
     getParamWithWarning(pnh, "stereo_fps",  stereo_fps);
+    getParamWithWarning(pnh, "bilateral_sigma",  bilateralSigma);
     getParamWithWarning(pnh, "monoResolution",   monoResolution);
 
     bool enableDepth = mode == "depth";
     dai::Pipeline pipeline;
     int monoWidth, monoHeight;
     std::tie(pipeline, monoWidth, monoHeight) =
-        createPipeline(enableDepth, lrcheck, extended, subpixel, rectify, depth_aligned, stereo_fps, confidence, LRchecktresh, monoResolution);
+        createPipeline(enableDepth, lrcheck, extended, subpixel, rectify, depth_aligned, stereo_fps, confidence, LRchecktresh, bilateralSigma, monoResolution);
 
     ros::NodeHandle n(topicPrefix);
     auto publisher = dai::ros::GenericPipelinePublisher(n, device, pipeline, tfPrefix);
