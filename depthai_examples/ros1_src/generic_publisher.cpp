@@ -135,7 +135,7 @@ std::tuple<dai::Pipeline, int, int> createPipeline(bool enableDepth,
 }
 
 template <typename T>
-static inline void getParamWithWarning(ros::NodeHandle& pnh, const char* key, T val) {
+static inline void getParamWithWarning(ros::NodeHandle& pnh, const char* key, T& val) {
     bool gotParam = pnh.getParam(key, val);
     if(!gotParam) {
         std::stringstream ss;
@@ -183,7 +183,7 @@ int main(int argc, char** argv) {
         createPipeline(enableDepth, lrcheck, extended, subpixel, rectify, depth_aligned, stereo_fps, confidence, LRchecktresh, monoResolution);
 
     ros::NodeHandle n(topicPrefix);
-    auto publisher = dai::ros::GenericPipelinePublisher(n, device, pipeline);
+    auto publisher = dai::ros::GenericPipelinePublisher(n, device, pipeline, tfPrefix);
 
     ros::spin();
 
