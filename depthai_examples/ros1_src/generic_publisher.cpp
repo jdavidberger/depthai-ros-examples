@@ -17,18 +17,50 @@
 
 #include "depthai/depthai.hpp"
 
-std::tuple<dai::Pipeline, int, int> createPipeline(bool enableDepth,
-                                                   bool lrcheck,
-                                                   bool extended,
-                                                   bool subpixel,
-                                                   bool rectify,
-                                                   bool depth_aligned,
-                                                   int stereo_fps,
-                                                   int confidence,
-                                                   int LRchecktresh,
-                                                   int bilateralSigma,
-                                                   std::string resolution, int decimation) {
+template <typename T>
+static inline void getParamWithWarning(ros::NodeHandle& pnh, const char* key, T& val) {
+    bool gotParam = pnh.getParam(key, val);
+    std::stringstream ss;
+    ss << val;
+    if(!gotParam) {
+        ROS_WARN("Could not find param '%s' on node '%s'. Defaulting to '%s'", key, pnh.getNamespace().c_str(), ss.str().c_str());
+    } else {
+        ROS_INFO("Node %32s param %20s: %s", pnh.getNamespace().c_str(), key, ss.str().c_str());
+    }
+}
+
+dai::Pipeline createPipeline(ros::NodeHandle& pnh) {
     dai::Pipeline pipeline;
+
+    std::string camera_param_uri;
+    std::string resolution = "720p";
+    std::string mode = "depth";
+
+    bool lrcheck = true, extended = false,
+            subpixel = true, rectify = true, depth_aligned = true;
+    int stereo_fps = 30;
+    int confidence = 200;
+    int LRchecktresh = 5;
+    int bilateralSigma = 5;
+    int decimation = 1;
+    int fixedFocus = 135;
+
+    getParamWithWarning(pnh, "camera_param_uri", camera_param_uri);
+    getParamWithWarning(pnh, "lrcheck", lrcheck);
+    getParamWithWarning(pnh, "extended", extended);
+    getParamWithWarning(pnh, "subpixel", subpixel);
+    getParamWithWarning(pnh, "confidence", confidence);
+    getParamWithWarning(pnh, "LRchecktresh", LRchecktresh);
+    getParamWithWarning(pnh, "mode", mode);
+    getParamWithWarning(pnh, "rectify",  rectify);
+    getParamWithWarning(pnh, "depth_aligned",  depth_aligned);
+    getParamWithWarning(pnh, "stereo_fps",  stereo_fps);
+    getParamWithWarning(pnh, "bilateral_sigma",  bilateralSigma);
+    getParamWithWarning(pnh, "mono_resolution",   resolution);
+    getParamWithWarning(pnh, "decimation",   decimation);
+    getParamWithWarning(pnh, "fixed_focus",   fixedFocus);
+
+    bool enableDepth = mode == "depth";
 
     auto monoLeft = pipeline.create<dai::node::MonoCamera>();
     auto monoRight = pipeline.create<dai::node::MonoCamera>();
@@ -104,9 +136,12 @@ std::tuple<dai::Pipeline, int, int> createPipeline(bool enableDepth,
         // the ColorCamera is downscaled from 1080p to 720p.
         // Otherwise, the aligned depth is automatically upscaled to 1080p
         camRgb->setIspScale(2, 3);
-        // For now, RGB needs fixed focus to properly align with depth.
-        // This value was used during calibration
-        camRgb->initialControl.setManualFocus(135);
+
+        if(fixedFocus < 0) {
+            camRgb->initialControl.setAutoFocusMode(dai::RawCameraControl::AutoFocusMode::CONTINUOUS_VIDEO);
+        } else {
+            camRgb->initialControl.setManualFocus(fixedFocus);
+        }
         camRgb->isp.link(xoutRgb->input);
     } else {
         // Stereo imges
@@ -137,17 +172,7 @@ std::tuple<dai::Pipeline, int, int> createPipeline(bool enableDepth,
 
     imu->out.link(xoutImu->input);
 
-    return std::make_tuple(pipeline, width, height);
-}
-
-template <typename T>
-static inline void getParamWithWarning(ros::NodeHandle& pnh, const char* key, T& val) {
-    bool gotParam = pnh.getParam(key, val);
-    if(!gotParam) {
-        std::stringstream ss;
-        ss << val;
-        ROS_WARN("Could not find param '%s' on node '%s'. Defaulting to '%s'", key, pnh.getNamespace().c_str(), ss.str().c_str());
-    }
+    return pipeline;
 }
 
 int main(int argc, char** argv) {
@@ -157,40 +182,12 @@ int main(int argc, char** argv) {
     ros::NodeHandle pnh("~");
 
     std::string tfPrefix = "dai_" + device.getMxId();
-    std::string camera_param_uri;
-    std::string monoResolution = "720p";
-    std::string mode = "depth";
     std::string topicPrefix = tfPrefix;
-
-    bool lrcheck = true, extended = false,
-            subpixel = true, rectify = true, depth_aligned = true;
-    int stereo_fps = 30;
-    int confidence = 200;
-    int LRchecktresh = 5;
-    int bilateralSigma = 5;
-    int decimation = 1;
 
     getParamWithWarning(pnh, "tf_prefix", tfPrefix);
     getParamWithWarning(pnh, "topic_prefix", topicPrefix);
-    getParamWithWarning(pnh, "camera_param_uri", camera_param_uri);
-    getParamWithWarning(pnh, "lrcheck", lrcheck);
-    getParamWithWarning(pnh, "extended", extended);
-    getParamWithWarning(pnh, "subpixel", subpixel);
-    getParamWithWarning(pnh, "confidence", confidence);
-    getParamWithWarning(pnh, "LRchecktresh", LRchecktresh);
-    getParamWithWarning(pnh, "mode", mode);
-    getParamWithWarning(pnh, "rectify",  rectify);
-    getParamWithWarning(pnh, "depth_aligned",  depth_aligned);
-    getParamWithWarning(pnh, "stereo_fps",  stereo_fps);
-    getParamWithWarning(pnh, "bilateral_sigma",  bilateralSigma);
-    getParamWithWarning(pnh, "monoResolution",   monoResolution);
-    getParamWithWarning(pnh, "decimation",   decimation);
 
-    bool enableDepth = mode == "depth";
-    dai::Pipeline pipeline;
-    int monoWidth, monoHeight;
-    std::tie(pipeline, monoWidth, monoHeight) =
-        createPipeline(enableDepth, lrcheck, extended, subpixel, rectify, depth_aligned, stereo_fps, confidence, LRchecktresh, bilateralSigma, monoResolution, decimation);
+    dai::Pipeline pipeline = createPipeline(pnh);
 
     ros::NodeHandle n(topicPrefix);
     auto publisher = dai::ros::GenericPipelinePublisher(n, device, pipeline, tfPrefix);
