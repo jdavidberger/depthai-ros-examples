@@ -77,6 +77,9 @@ std::tuple<dai::Pipeline, int, int> createPipeline(bool enableDepth,
     monoRight->setFps(stereo_fps);
 
     // StereoDepth
+    auto rawCfg = stereo->initialConfig.get();
+    rawCfg.postProcessing.decimationFilter.decimationFactor = 2;
+    stereo->initialConfig.set(rawCfg);
     stereo->initialConfig.setConfidenceThreshold(confidence);        // Known to be best
     stereo->setRectifyEdgeFillColor(0);                              // black, to better see the cutout
     stereo->initialConfig.setLeftRightCheckThreshold(LRchecktresh);  // Known to be best
