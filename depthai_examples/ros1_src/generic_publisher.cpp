@@ -27,7 +27,7 @@ std::tuple<dai::Pipeline, int, int> createPipeline(bool enableDepth,
                                                    int confidence,
                                                    int LRchecktresh,
                                                    int bilateralSigma,
-                                                   std::string resolution) {
+                                                   std::string resolution, int decimation) {
     dai::Pipeline pipeline;
 
     auto monoLeft = pipeline.create<dai::node::MonoCamera>();
@@ -78,7 +78,7 @@ std::tuple<dai::Pipeline, int, int> createPipeline(bool enableDepth,
 
     // StereoDepth
     auto rawCfg = stereo->initialConfig.get();
-    rawCfg.postProcessing.decimationFilter.decimationFactor = 2;
+    rawCfg.postProcessing.decimationFilter.decimationFactor = decimation;
     stereo->initialConfig.set(rawCfg);
     stereo->initialConfig.setConfidenceThreshold(confidence);        // Known to be best
     stereo->setRectifyEdgeFillColor(0);                              // black, to better see the cutout
@@ -87,6 +87,7 @@ std::tuple<dai::Pipeline, int, int> createPipeline(bool enableDepth,
     stereo->setLeftRightCheck(lrcheck);
     stereo->setExtendedDisparity(extended);
     stereo->setSubpixel(subpixel);
+
     if(enableDepth && depth_aligned) stereo->setDepthAlign(dai::CameraBoardSocket::RGB);
 
     // Imu
@@ -167,6 +168,7 @@ int main(int argc, char** argv) {
     int confidence = 200;
     int LRchecktresh = 5;
     int bilateralSigma = 5;
+    int decimation = 1;
 
     getParamWithWarning(pnh, "tf_prefix", tfPrefix);
     getParamWithWarning(pnh, "topic_prefix", topicPrefix);
@@ -182,12 +184,13 @@ int main(int argc, char** argv) {
     getParamWithWarning(pnh, "stereo_fps",  stereo_fps);
     getParamWithWarning(pnh, "bilateral_sigma",  bilateralSigma);
     getParamWithWarning(pnh, "monoResolution",   monoResolution);
+    getParamWithWarning(pnh, "decimation",   decimation);
 
     bool enableDepth = mode == "depth";
     dai::Pipeline pipeline;
     int monoWidth, monoHeight;
     std::tie(pipeline, monoWidth, monoHeight) =
-        createPipeline(enableDepth, lrcheck, extended, subpixel, rectify, depth_aligned, stereo_fps, confidence, LRchecktresh, bilateralSigma, monoResolution);
+        createPipeline(enableDepth, lrcheck, extended, subpixel, rectify, depth_aligned, stereo_fps, confidence, LRchecktresh, bilateralSigma, monoResolution, decimation);
 
     ros::NodeHandle n(topicPrefix);
     auto publisher = dai::ros::GenericPipelinePublisher(n, device, pipeline, tfPrefix);
