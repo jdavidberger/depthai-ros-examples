@@ -163,6 +163,12 @@ dai::Pipeline createPipeline(ros::NodeHandle& pnh) {
 
     monoLeft->out.link(stereo->left);
     monoRight->out.link(stereo->right);
+    auto left = pipeline.create<dai::node::XLinkOut>();
+    left->setStreamName("mono_left");
+    auto right = pipeline.create<dai::node::XLinkOut>();
+    right->setStreamName("mono_right");
+    monoLeft->out.link(left->input);
+    monoRight->out.link(right->input);
 
     if(enableDepth) {
         stereo->depth.link(xoutDepth->input);
