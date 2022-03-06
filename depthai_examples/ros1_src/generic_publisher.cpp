@@ -197,7 +197,9 @@ int main(int argc, char** argv) {
 
     ros::NodeHandle n(topicPrefix);
     auto publisher = dai::ros::GenericPipelinePublisher(n, device, pipeline, tfPrefix);
-
+    auto calibration = device.readCalibration();
+    auto eepromData = calibration.getEepromData();
+    ROS_INFO("Board %s rev %s", eepromData.boardName.c_str(), eepromData.boardRev.c_str());
     while(ros::ok() && !device.isClosed()) {
         ros::spinOnce();
         std::this_thread::sleep_for(std::chrono::milliseconds(30));
